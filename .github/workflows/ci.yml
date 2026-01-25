@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install "poetry==2.3.1"
+
+      - name: Install deps
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install
+
+      - name: Lint (ruff)
+        run: poetry run ruff check .
+
+      - name: Format check (ruff)
+        run: poetry run ruff format --check .
+
+      - name: Type check (mypy)
+        run: poetry run mypy src
+
+      - name: Tests
+        run: poetry run pytest --cov=liztomaniac --cov-report=term-missing
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.14.0"
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init (no backend)
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
