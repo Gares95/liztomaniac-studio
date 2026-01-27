@@ -1,0 +1,33 @@
+name: terraform-apply
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~1.14.0"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_APPLY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform init (no backend for now)
+        run: terraform init -backend=false
+
+      - name: Terraform apply
+        run: terraform apply -auto-approve

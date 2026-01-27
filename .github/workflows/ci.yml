@@ -40,6 +40,10 @@ jobs:
     defaults:
       run:
         working-directory: infra/terraform
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
 
@@ -55,3 +59,15 @@ jobs:
 
       - name: Terraform validate
         run: terraform validate
+
+
+      - name: Configure AWS credentials (OIDC - PLAN role)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PLAN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Terraform plan
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: terraform plan -no-color -input=false
