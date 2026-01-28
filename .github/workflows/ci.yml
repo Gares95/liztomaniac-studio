@@ -68,6 +68,10 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_PLAN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      - name: Verify assumed identity
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: aws sts get-caller-identity
+
       - name: Terraform plan
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: terraform plan -no-color -input=false
