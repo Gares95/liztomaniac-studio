@@ -22,3 +22,10 @@ crash.log
 
 # Node (future frontend)
 node_modules/
+
+# Experiments
+experiments/assets/*
+# !experiments/assets/.gitkeep
+
+
+experiments/audio_lab/*
