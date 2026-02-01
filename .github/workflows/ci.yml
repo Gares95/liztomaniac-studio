@@ -65,12 +65,13 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN_PLAN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          mask-aws-account-id: true
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PLAN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Verify assumed identity
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: aws sts get-caller-identity
+        run: aws sts get-caller-identity >/dev/null
 
       - name: Terraform plan
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
