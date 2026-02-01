@@ -19,6 +19,7 @@ build/
 *.tfstate.*
 crash.log
 .terraform.lock.hcl
+terraform.auto.tfvars
 
 # Node (future frontend)
 node_modules/
@@ -26,6 +27,4 @@ node_modules/
 # Experiments
 experiments/assets/*
 # !experiments/assets/.gitkeep
-
-
 experiments/audio_lab/*
