@@ -20,6 +20,8 @@ build/
 crash.log
 .terraform.lock.hcl
 terraform.auto.tfvars
+infra/terraform/backend.tf
+
 
 # Node (future frontend)
 node_modules/
