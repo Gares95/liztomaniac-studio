@@ -54,20 +54,19 @@ jobs:
       - name: Terraform fmt
         run: terraform fmt -check -recursive
 
-      - name: Terraform init (no backend)
-        run: terraform init -backend=false
-
-      - name: Terraform validate
-        run: terraform validate
-
-
       - name: Configure AWS credentials (OIDC - PLAN role)
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           mask-aws-account-id: true
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_PLAN }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate
 
       - name: Verify assumed identity
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
