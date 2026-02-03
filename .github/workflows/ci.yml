@@ -98,10 +98,12 @@ jobs:
       - name: Install Poetry
         run: pipx install "poetry==2.3.1"
 
-      - name: Export runtime requirements for audit
-        run: poetry export -f requirements.txt --without-hashes --only main -o /tmp/requirements.txt
+      - name: Install runtime deps
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry install --only main
 
       - name: Dependency audit (pip-audit)
         run: |
-          python -m pip install --upgrade pip pip-audit
-          pip-audit -r /tmp/requirements.txt
+          poetry run python -m pip install --upgrade pip pip-audit
+          poetry run pip-audit
