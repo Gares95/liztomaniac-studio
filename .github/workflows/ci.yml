@@ -62,16 +62,46 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_PLAN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Remote backend when PRs from same repo
+      - name: Terraform init (no backend for forks)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: terraform init -input=false -backend=false
+
+      # Same-repo PRs + push: init remote backend
       - name: Terraform init
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         run: terraform init -input=false
 
       - name: Terraform validate
         run: terraform validate
 
-      - name: Verify assumed identity
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: aws sts get-caller-identity >/dev/null
-
       - name: Terraform plan
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: terraform plan -no-color -input=false
+        run: terraform plan -no-color -input=false -lock-timeout=3m
+
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tfsec (Terraform security scan)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: infra/terraform
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: pipx install "poetry==2.3.1"
+
+      - name: Export runtime requirements for audit
+        run: poetry export -f requirements.txt --without-hashes --only main -o /tmp/requirements.txt
+
+      - name: Dependency audit (pip-audit)
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip-audit -r /tmp/requirements.txt
