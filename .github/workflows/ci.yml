@@ -62,16 +62,19 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN_PLAN }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      # Remote backend when PRs from same repo
+      - name: Terraform init (no backend for forks)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        run: terraform init -input=false -backend=false
+
+      # Same-repo PRs + push: init remote backend
       - name: Terraform init
+        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
         run: terraform init -input=false
 
       - name: Terraform validate
         run: terraform validate
 
-      - name: Verify assumed identity
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: aws sts get-caller-identity >/dev/null
-
       - name: Terraform plan
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: terraform plan -no-color -input=false
+        run: terraform plan -no-color -input=false -lock-timeout=3m
