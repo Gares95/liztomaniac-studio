@@ -61,12 +61,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
   bucket = aws_s3_bucket.uploads.id
 
   rule {
-    id = "expiration-dates"
+    id     = "expiration-dates"
+    status = "Enabled"
+
+    filter {}
 
     expiration {
       days = var.object_expiration_days
     }
-    status = "Enabled"
   }
 }
 
@@ -74,12 +76,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "results" {
   bucket = aws_s3_bucket.results.id
 
   rule {
-    id = "expiration-dates"
+    id     = "expiration-dates"
+    status = "Enabled"
+
+    filter {}
 
     expiration {
       days = var.object_expiration_days
     }
-    status = "Enabled"
   }
 }
 
