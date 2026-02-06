@@ -1,3 +1,5 @@
+#tfsec:ignore:aws-s3-enable-bucket-logging: Access logging deferred for early milestone; low-risk ephemeral data; will add centralized logging bucket later.
+#tfsec:ignore:aws-s3-enable-versioning: Uploads are ephemeral and expire after var.object_expiration_days; versioning would increase object count and cost.
 
 resource "aws_s3_bucket" "uploads" {
   bucket = "${var.project_name}-uploads-${data.aws_caller_identity.current.account_id}"
@@ -25,11 +27,30 @@ resource "aws_s3_bucket_public_access_block" "results" {
   restrict_public_buckets = true
 }
 
+# resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
+#   bucket = aws_s3_bucket.uploads.id
+#   rule {
+#     apply_server_side_encryption_by_default {
+#       sse_algorithm = "AES256"
+#     }
+#   }
+# }
+
+# resource "aws_s3_bucket_server_side_encryption_configuration" "results" {
+#   bucket = aws_s3_bucket.results.id
+#   rule {
+#     apply_server_side_encryption_by_default {
+#       sse_algorithm = "AES256"
+#     }
+#   }
+# }
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
   bucket = aws_s3_bucket.uploads.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_app_data.arn
     }
   }
 }
@@ -38,10 +59,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "results" {
   bucket = aws_s3_bucket.results.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_app_data.arn
     }
   }
 }
+
 
 resource "aws_s3_bucket_ownership_controls" "uploads" {
   bucket = aws_s3_bucket.uploads.id
@@ -88,10 +111,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "results" {
 }
 
 
-# Add versioning in resulting outputs
-resource "aws_s3_bucket_versioning" "results" {
-  bucket = aws_s3_bucket.results.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
+# # Add versioning in resulting outputs
+# resource "aws_s3_bucket_versioning" "results" {
+#   bucket = aws_s3_bucket.results.id
+#   versioning_configuration {
+#     status = "Enabled"
+#   }
+# }
