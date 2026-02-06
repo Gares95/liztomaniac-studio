@@ -1,0 +1,120 @@
+#tfsec:ignore:aws-s3-enable-bucket-logging: Access logging deferred for early milestone; low-risk ephemeral data; will add centralized logging bucket later.
+#tfsec:ignore:aws-s3-enable-versioning: Uploads are ephemeral and expire after var.object_expiration_days; versioning would increase object count and cost.
+
+resource "aws_s3_bucket" "uploads" {
+  bucket = "${var.project_name}-uploads-${data.aws_caller_identity.current.account_id}"
+  tags   = local.tags
+}
+
+resource "aws_s3_bucket" "results" {
+  bucket = "${var.project_name}-results-${data.aws_caller_identity.current.account_id}"
+  tags   = local.tags
+}
+
+resource "aws_s3_bucket_public_access_block" "uploads" {
+  bucket                  = aws_s3_bucket.uploads.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "results" {
+  bucket                  = aws_s3_bucket.results.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
+#   bucket = aws_s3_bucket.uploads.id
+#   rule {
+#     apply_server_side_encryption_by_default {
+#       sse_algorithm = "AES256"
+#     }
+#   }
+# }
+
+# resource "aws_s3_bucket_server_side_encryption_configuration" "results" {
+#   bucket = aws_s3_bucket.results.id
+#   rule {
+#     apply_server_side_encryption_by_default {
+#       sse_algorithm = "AES256"
+#     }
+#   }
+# }
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_app_data.arn
+    }
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "results" {
+  bucket = aws_s3_bucket.results.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.s3_app_data.arn
+    }
+  }
+}
+
+
+resource "aws_s3_bucket_ownership_controls" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_ownership_controls" "results" {
+  bucket = aws_s3_bucket.results.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
+
+  rule {
+    id     = "expiration-dates"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = var.object_expiration_days
+    }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "results" {
+  bucket = aws_s3_bucket.results.id
+
+  rule {
+    id     = "expiration-dates"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = var.object_expiration_days
+    }
+  }
+}
+
+
+# # Add versioning in resulting outputs
+# resource "aws_s3_bucket_versioning" "results" {
+#   bucket = aws_s3_bucket.results.id
+#   versioning_configuration {
+#     status = "Enabled"
+#   }
+# }

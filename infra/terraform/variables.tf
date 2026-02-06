@@ -15,3 +15,9 @@ variable "aws_region" {
   description = "AWS region to deploy into."
   default     = "eu-west-1"
 }
+
+variable "object_expiration_days" {
+  type        = number
+  description = "Days before an uploaded and processed object expire"
+  default     = 7
+}
